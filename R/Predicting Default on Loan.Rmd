@@ -1,0 +1,325 @@
+---
+title: "Project 2"
+author: "Elisa Rwagasana Ishimwe"
+date: "2024-03-05"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_knit$set(root.dir = "OneDrive - The College of Wooster/Desktop/Applied DS")
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+```
+
+```{r}
+#Importing the base dataset
+library(readr)
+train_base <- read_csv("~/Desktop/Project 2/home-credit-credit-risk-model-stability/csv_files/train/train_base.csv")
+```
+```{r}
+#Importing train person_1
+library(readr)
+train_person_1 <- read_csv("~/Desktop/Project 2/home-credit-credit-risk-model-stability/csv_files/train/train_person_1.csv")
+```
+
+
+```{r}
+#Merging train_person_1 to the base table
+# Outer join
+data <- merge(train_base, train_person_1, by = "case_id", all = TRUE)
+```
+
+```{r}
+#Data manipulation 
+#Selecting the variables needed 
+data <- data %>%
+  dplyr::select(
+    case_id, 
+    mainoccupationinc_384A, 
+    birth_259D,
+    target,
+    familystate_447L,
+    sex_738L,
+    incometype_1044T
+  )
+```
+
+
+```{r}
+#Remove NAs
+data <- data %>%
+  filter(
+    !is.na(mainoccupationinc_384A) & 
+    !is.na(birth_259D) & 
+    !is.na(familystate_447L) & 
+    !is.na(sex_738L)
+  )%>%
+  sample_n(size = 100000, replace = FALSE)
+```
+
+
+```{r}
+#Change my date variable 
+data <- data %>% mutate (target = as.factor(target))%>%
+  separate(col = birth_259D, into = c("year", "month", "day"), sep = "-")
+```
+
+```{r}
+library(dplyr)
+
+# Assuming 'data' is your data frame and 'year' is the variable representing the year
+data <- data %>%
+  mutate(year = as.numeric(year),  # Convert 'year' to numeric
+         generation = ifelse(between(year, 1925, 1945), "Silent Generation",
+                              ifelse(between(year, 1946, 1964), "Baby Boomers",
+                                     ifelse(between(year, 1965, 1980), "Generation X",
+                                            ifelse(between(year, 1981, 1996), "Millennials",
+                                                   ifelse(between(year, 1997, 2012), "Generation Z", "Other"))))))
+
+
+
+```
+
+```{r}
+#Saving dataset
+write.csv(data, "project2data.csv")
+```
+
+
+```{r}
+str(data)
+```
+```{r}
+#Splitting into train and test
+set.seed(1)
+n <- nrow(data)
+
+# Generate random indices for the training set (80%)
+train_indices <- sample(1:n, size = 0.8 * n, replace = FALSE)
+
+# Create the training set
+train_set <- data[train_indices, ]
+
+# Create the test set by excluding the training set
+test_set <- data[-train_indices, ]
+```
+
+
+```{r}
+#Model building 
+glm.fit1 <- glm(target ~ generation + familystate_447L + sex_738L + incometype_1044T
+               , data = train_set
+               , family = binomial)
+summary(glm.fit1)
+```
+
+
+# Assuming merged_dataset is your dataframe
+library(rpart)
+library(rpart.plot)
+
+# Create a regression or classification tree
+tree_model <- rpart(target ~ mainoccupationinc_384A + year + familystate_447L + sex_738L,
+                    data = tr,
+                    method = "class",  # Use "class" for classification, "anova" for regression
+                    cp = 0.01 
+)
+
+# Display the tree
+print(tree_model)
+rpart.plot(tree_model)
+
+```{r}
+# Assuming glm.fit1 is your initial model
+library(caret)
+library(lattice)
+library(MASS)
+backward_model <- stepAIC(glm.fit1, direction="backward")
+summary(backward_model)
+
+```
+Our model with all predictors is the best because it has a lower AIC and smaller deviance.
+
+# Classification tree (NOT WORKING)
+```{r}
+# Fit the classification tree with specified cp
+class_tree <- rpart(target ~.,
+                    data = train_set,
+                    method = "class",
+                    control = rpart.control(cp = 0.001))  
+
+# Load the rpart.plot library
+library(rpart.plot)
+
+# Plot the classification tree
+rpart.plot(class_tree)
+```
+
+# Random Forest
+```{r}
+library(randomForest)
+rf_model <- randomForest(target ~ mainoccupationinc_384A + generation + incometype_1044T +  
+    familystate_447L + sex_738L
+                  , data = train_set
+                  , mtry = 7
+                  , ntree = 300
+                  , importance = TRUE
+                  , type = "class")
+rf_model
+varImpPlot(rf_model)
+```
+
+
+```{r}
+# Predicted probabilities
+predicted_probabilities <- predict(glm.fit1, newdata = test_set, type = "response")
+
+# Convert probabilities to binary predictions using a threshold (e.g., 0.5)
+class_pred <- ifelse(predicted_probabilities > 0.5, 1, 0)
+```
+
+```{r}
+# Compare predicted values with the actual response variable in the test set
+conf_matrix <- table(Actual = test_set$target, Predicted = class_pred)
+
+# Display the confusion matrix
+print(conf_matrix)
+
+# Calculate accuracy
+accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+cat("Accuracy:", accuracy, "\n")
+
+```
+True Negatives (TN): 19351 (actual negative instances correctly predicted as negative)
+False Negatives (FN): 649 (actual positive instances incorrectly predicted as negative)
+It indicates that your model is correctly identifying the majority of negative instances (TN) but is missing a significant portion of positive instances (FN).
+Weakness: This suggests that your model is conservative in predicting positive instances and tends to under predict them.
+It is only working when the threshold is equal to 0.1 (which is too low). There might also be because of class imbalance where there is a balance in the distribution of positive and negative instances in the dataset. 
+
+### EDA
+```{r}
+#Target with main income
+data %>%
+  ggplot(aes(x = target, y = mainoccupationinc_384A)) +
+  geom_boxplot()+
+  labs(title = "Default status by Amount of Income",
+       x = "Default Status",
+       y = "Amount of income")
+  
+```
+
+
+```{r}
+# Assuming 'count' is the variable representing the count of occurrences
+data %>%
+  group_by(generation, target) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(generation,count), y = count, fill = target)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Default Status by Generation",
+       x = "Generation",
+       y = "Count",
+       fill = "Target")
+
+library(ggplot2)
+
+data %>%
+  filter(target == 1) %>%
+  group_by(generation) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(generation, count), y = count, fill = generation)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Defaulting on a Loan Across Generations",
+       x = "Generation",
+       y = "Number of People",
+       fill = "Generation") + 
+  scale_fill_brewer(palette = "Oranges") +
+  theme(
+    plot.title = element_text(hjust = 0.5),  # Center the title
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),  # Rotate x-axis labels vertically
+    panel.grid.major = element_blank(),      # Remove major grid lines
+    panel.grid.minor = element_blank(),      # Remove minor grid lines
+    panel.background = element_blank(),      # Remove panel background
+    axis.line = element_line(color = "black"),  # Add axis lines
+    axis.ticks = element_blank()             # Remove axis ticks
+  )
+
+```
+
+```{r}
+library(ggplot2)
+
+data %>%
+  filter(target == 1) %>%
+  group_by(familystate_447L) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(familystate_447L, count), y = count, fill = familystate_447L)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Defaulting on a Loan Across Marital Status",
+       x = "Marital Status",
+       y = "Number of People",
+       fill = "Marital Status") + 
+  scale_fill_brewer(palette = "Reds") +
+  theme(
+    plot.title = element_text(hjust = 0.5),  # Center the title
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),  # Rotate x-axis labels vertically
+    panel.grid.major = element_blank(),      # Remove major grid lines
+    panel.grid.minor = element_blank(),      # Remove minor grid lines
+    panel.background = element_blank(),      # Remove panel background
+    axis.line = element_line(color = "black"),  # Add axis lines
+    axis.ticks = element_blank()             # Remove axis ticks
+  )
+
+```
+
+```{r}
+#Target with gender
+data %>%
+  group_by(sex_738L, target) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = sex_738L, y = count, fill = target)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Barplot of Two Categorical Variables",
+       x = "Year",
+       y = "Count",
+       fill = "Target")
+```
+
+```{r}
+# Create a contingency table
+contingency_table <- table(data$target, data$familystate_447L)
+
+# Calculate proportions
+proportions <- prop.table(contingency_table, margin = 1)  # Proportions within each row (category1)
+# Alternatively, you can calculate proportions within each column (category2) by changing margin = 2
+
+# Print the proportions
+print(proportions)
+
+```
+```{r}
+data %>%
+  filter(target == 1, incometype_1044T %in% c("SELFEMPLOYED", "RETIRED_PENSIONER", "SALARIED_GOVT", "EMPLOYED", "PRIVATE_SECTOR_EMPLOYEE")) %>%
+  group_by(incometype_1044T) %>%
+  summarise(count = n()) %>%
+  ggplot(aes(x = reorder(incometype_1044T, count), y = count, fill = incometype_1044T)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  labs(title = "Defaulting on a Loan Across Different Income Types",
+       x = "Income Type",
+       y = "Number of People") + 
+  scale_fill_manual(values = c("PRIVATE_SECTOR_EMPLOYEE" = "darkred", # Highlight PRIVATE_SECTOR_EMPLOYEE in red
+                               "Other" = "grey")) +           # Other categories in grey
+  theme(
+    plot.title = element_text(hjust = 0.5),  # Center the title
+    axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1),  # Rotate x-axis labels vertically
+    panel.grid.major = element_blank(),      # Remove major grid lines
+    panel.grid.minor = element_blank(),      # Remove minor grid lines
+    panel.background = element_blank(),      # Remove panel background
+    axis.line = element_line(color = "black"),  # Add axis lines
+    axis.ticks = element_blank()             # Remove axis ticks
+  )
+
+```
+

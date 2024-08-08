@@ -1,0 +1,368 @@
+---
+title: "Final Project Appendix"
+author: "Elisa Rwagasana Ishimwe"
+date: "2023-11-20"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(ggformula)
+library(mosaic)
+library(ggplot2)
+options(scipen = 999)
+```
+
+```{r}
+library(readxl)
+AdidasSalesdata <- read_excel("~/Downloads/AdidasSalesdata.xlsx")
+#View(AdidasSalesdata)
+```
+
+```{r}
+AdidasSalesdata1 <- AdidasSalesdata%>%
+  separate(`Invoice Date`, into=c("year", "month", "date"), sep= "-")%>%
+  filter(`Total Sales`!= 0)
+```
+
+### Explolatory Data Analysis 
+
+### Summary table of sales
+```{r}
+#This summary table shows the distribution of total sales (response variable)
+favstats(~ `Total Sales`, data = AdidasSalesdata) 
+```
+
+### Total Sales with Retailer
+```{r}
+#This boxplot comparing total sales by retailer and this variable is not a promising variables
+AdidasSalesdata%>%
+  gf_boxplot(`Total Sales` ~ Retailer, fill = ~Retailer)+
+  labs(title = "Total Sales by Retailer")
+
+#Summary table of total sales by retailer
+favstats( `Total Sales` ~ Retailer, data = AdidasSalesdata)
+```
+
+
+### Total Sales with Invoice date
+```{r}
+#Separating invoice date into date, month and year to be able to analyze total sales by each year and month
+AdidasSalesdata1 <- AdidasSalesdata%>%
+  separate(`Invoice Date`, into=c("year", "month", "date"), sep= "-")
+
+#This boxplot compares total sales by year and year does not look like a very promising variable
+AdidasSalesdata1%>%
+  gf_boxplot(`Total Sales` ~ year, fill = ~year)+
+  labs(title = "Total Sales by Invoice Year")
+
+#This boxplot compares total sales by month and month does not look like a promising variable 
+AdidasSalesdata1%>%
+  gf_boxplot(`Total Sales` ~ month, fill = ~month)+
+  labs(title = "Total Sales by Invoice Month")
+```
+
+
+### Total Sales with region
+```{r}
+#This boxplot compares total sales by region and region does not look like a promising variable
+AdidasSalesdata%>%
+  gf_boxplot(`Total Sales` ~ Region, fill = ~Region)+
+  labs(title = "Total Sales by Region")
+
+#Summary table of total sales by region
+AdidasSalesdata%>%
+  group_by(Region)%>%
+  summarize(count = n(), average_sales = mean(`Total Sales`))
+```
+
+
+### Total Sales with state
+```{r}
+#Summary table of total sales by state
+AdidasSalesdata%>%
+  group_by(State)%>%
+  summarize(count = n(), average_sales = mean(`Total Sales`))%>%
+  arrange(average_sales)
+```
+
+
+### Total Sales with city
+```{r}
+#Summary table of total sales by city
+AdidasSalesdata%>%
+  group_by(City)%>%
+  summarize(count = n(), average_sales = mean(`Total Sales`))%>%
+  arrange(average_sales)
+```
+
+
+### Total Sales with gender type
+```{r}
+#This boxplot compares total sales by gender type and gender type does not look like a promising variable
+AdidasSalesdata%>%
+  gf_boxplot(`Total Sales` ~ `Gender Type`, fill = ~`Gender Type`) +
+  labs(title = "Total Sales by Gender Type")
+
+#Summary table of total sales by gender type
+AdidasSalesdata%>%
+  group_by(`Gender Type`)%>%
+  summarize(count = n(), average_sales = mean(`Total Sales`))
+```
+
+
+### Total Sales with product category
+```{r}
+#This boxplot compares total sales by product category and this variable does not like a promising variable
+AdidasSalesdata%>%
+  gf_boxplot(`Total Sales` ~ `Product Category`, fill = ~ `Product Category`)+
+  labs(title = "Total Sales by Product Category")
+```
+
+
+### Total Sales with price per unit
+```{r}
+#This scatterplot compares total sales by price per unit and price per unit looks like a promising variable
+AdidasSalesdata%>%
+  gf_point(`Total Sales` ~ `Price per Unit`)+
+  labs(title = "Total Sales by Price Per Unit")
+```
+
+
+### Total Sales with units sold
+```{r}
+#This scatterplot compares total sales by units sold and units sold look like a very promising variable
+AdidasSalesdata%>%
+  gf_point(`Total Sales` ~ `Units Sold`)+
+  labs(title = "Total Sales by Units Sold")
+```
+
+
+### Total Sales with operating profit
+```{r}
+#This scatterplot compares total sales by operating profit and operating profit looks like a very promising variable
+AdidasSalesdata%>%
+  gf_point(`Total Sales` ~ `Operating Profit`)+
+  labs(title = "Total Sales by Operating Profit")
+```
+
+
+### Total Sales with operating margin
+```{r}
+#This scatterplot compares total sales by operating margin and operating margin does not look like a promising variable.
+AdidasSalesdata%>%
+  gf_point(`Total Sales` ~ `Operating Margin`)+
+  labs(title = "Total Sales by Operating Margin")
+```
+
+
+### Total Sales with sales method
+```{r}
+#This boplot compares total sales by sales method and sales method looks like a very promising variable.
+AdidasSalesdata%>%
+  gf_boxplot(`Total Sales` ~ `Sales Method`, fill = ~`Sales Method`)+
+  labs(title = "Total Sales by Sales Method")
+```
+
+
+
+
+### Modeling 
+
+### Start with simple linear regression models
+```{r}
+Modelret <- lm(`Total Sales` ~ Retailer, data = AdidasSalesdata1)
+summary(Modelret)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelret)
+```
+```{r}
+Modelyr <- lm(`Total Sales` ~ year, data = AdidasSalesdata1)
+summary(Modelyr)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelyr)
+```
+
+```{r}
+Modelmon <- lm(`Total Sales` ~ month, data = AdidasSalesdata1)
+summary(Modelmon)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelmon)
+```
+```{r}
+Modelreg <- lm(`Total Sales` ~ Region, data = AdidasSalesdata1)
+summary(Modelreg)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelreg)
+```
+
+```{r}
+Modelgen <- lm(`Total Sales` ~ `Gender Type`, data = AdidasSalesdata1)
+summary(Modelgen)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelgen)
+```
+```{r}
+Modelprod <- lm(`Total Sales` ~ `Product Category`, data = AdidasSalesdata1)
+summary(Modelprod)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelprod)
+```
+
+### Units Sold
+```{r}
+Modelun <- lm(`Total Sales` ~ `Units Sold`, data = AdidasSalesdata1)
+summary(Modelun)
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelun)
+
+Modelun1 <- lm(sqrt(`Total Sales`) ~ sqrt(`Units Sold`), data = AdidasSalesdata1)
+summary(Modelun1)
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelun1)
+
+Modelun2 <- lm(`Total Sales` ~ sqrt(`Units Sold`), data = AdidasSalesdata1)
+summary(Modelun2)
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelun2)
+
+```
+```{r}
+Modelprof <- lm(`Total Sales` ~ `Operating Profit`, data = AdidasSalesdata1)
+summary(Modelprof)
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelprof)
+
+Modelprof1 <- lm(sqrt(`Total Sales`) ~ sqrt(`Operating Profit`), data = AdidasSalesdata1)
+summary(Modelprof1)
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelprof1)
+```
+```{r}
+Modelmarg <- lm(`Total Sales` ~ `Operating Margin`, data = AdidasSalesdata1)
+summary(Modelmarg)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelmarg)
+```
+```{r}
+Modelsal <- lm(`Total Sales` ~ `Sales Method`, data = AdidasSalesdata1)
+summary(Modelsal)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Modelsal)
+```
+
+
+#Use the most promising variables from the simple linear regression models built 
+
+```{r}
+Model11 <- lm((`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit` + `Operating Profit`, data = AdidasSalesdata1)
+summary(Model11)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model11)
+```
+```{r}
+Model13 <- lm(sqrt(`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit` + `Operating Profit`, data = AdidasSalesdata1)
+summary(Model13)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model13)
+```
+
+
+```{r}
+Model15 <- lm((`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit`, data = AdidasSalesdata1)
+summary(Model15)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model15)
+```
+```{r}
+Model16 <- lm((`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Operating Profit`, data = AdidasSalesdata1)
+summary(Model16)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model16)
+```
+```{r}
+Model17 <- lm((`Total Sales`) ~  (`Units Sold`) + `Price per Unit` + `Operating Profit`, data = AdidasSalesdata1)
+summary(Model17)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model17)
+```
+```{r}
+Model18 <- lm((`Total Sales`) ~ (`Operating Margin`) + `Price per Unit` + `Operating Profit`, data = AdidasSalesdata1)
+summary(Model18)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model18)
+```
+```{r}
+Model19 <- lm((`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit` + log(`Operating Profit`+1), data = AdidasSalesdata1)
+summary(Model19)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model19)
+```
+### Nested F test to check whether to include or remove operating profit
+```{r}
+anova(Model19, Model15, test = "Chisq")
+#Full model is statistically  better hence Model 19 is statistically better than model 15
+```
+#### Add Categorical variables to the best model 
+```{r}
+Model20 <- lm(`Total Sales` ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit` + log(`Operating Profit`+1) + Retailer + Region + year + month + `Gender Type` + `Product Category` + `Sales Method`, data = AdidasSalesdata1)
+summary(Model20)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model20)
+```
+```{r}
+Model21 <- lm((`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit` + log(`Operating Profit`+1) + Retailer + Region + year + `Gender Type` + `Product Category` + `Sales Method`, data = AdidasSalesdata1)
+summary(Model21)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model21)
+```
+### Removed month, retailer and product category
+```{r}
+Model22 <- lm((`Total Sales`) ~  (`Units Sold`) +  (`Operating Margin`) + `Price per Unit` + log(`Operating Profit`+1) + Region + year + `Gender Type` + `Sales Method`, data = AdidasSalesdata1)
+summary(Model22)
+
+par(mar=c(4,4,2,2)); par(mfrow=c(2,2)) 
+plot(Model22)
+```
+### model 19 vs 22
+
+```{r}
+#No significant difference in model 19 and 22 residuals
+anova(Model22, test="Chisq") 
+anova(Model19, test = "Chisq")
+```
+#Nested F Test
+```{r}
+anova(Model22, Model19, test = "Chisq")
+```
+
+### Confidence intervals
+```{r}
+confint(Model19)
+confint(Model22)
+```
+
+
+
+
