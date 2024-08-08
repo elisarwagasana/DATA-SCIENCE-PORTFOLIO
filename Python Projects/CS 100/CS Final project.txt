@@ -1,9 +1,0 @@
-CS Final project
-
-Have a screen color or we can also have an image background
-
-Have lines that divide the screen into 3 parts to indicate the levels
-
-Have a turtle as a person or any other thing as shape 
-
-Exits 
