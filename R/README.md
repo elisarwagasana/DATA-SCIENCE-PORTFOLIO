@@ -1,6 +1,6 @@
 ### R PROGRAMING DATA ANALYSIS  
 
-Welcome to the world of data analytics with R! In this repository, you will find a collection of projects and resources that showcase the power and versatility of R in data analysis.
+Welcome to the world of data science and analytics with R! In this repository, you will find a collection of projects and resources that showcase the power and versatility of R in data analysis.
 
 R is a popular programming language and software environment for data analysis. It is widely used by statisticians, data scientists, and researchers because of its powerful tools for data manipulation, visualization, and statistical modeling.
 
